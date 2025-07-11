@@ -9,13 +9,14 @@
 
 static HeaterMeterClient hm(HEATERMEATER_IP);
 
-#define DPIN_LED_CLK D1
-static TM1637Display led0(DPIN_LED_CLK, D2, 90);
-static TM1637Display led1(DPIN_LED_CLK, D7, 90);
-static TM1637Display led2(DPIN_LED_CLK, D6, 90);
-static TM1637Display led3(DPIN_LED_CLK, D5, 90);
+#include "hardware.h"
+
+static TM1637Display led0(DPIN_LED_CLK, DPIN_LED_DISP0, 90);
+static TM1637Display led1(DPIN_LED_CLK, DPIN_LED_DISP1, 90);
+static TM1637Display led2(DPIN_LED_CLK, DPIN_LED_DISP2, 90);
+static TM1637Display led3(DPIN_LED_CLK, DPIN_LED_DISP3, 90);
 static TM1637Display* leds[TEMP_COUNT];
-static Button<D4, false> button;
+static Button<DPIN_BUTTON, false> button;
 static WiFiManager wm;
 
 static float g_LastTemps[TEMP_COUNT];
@@ -114,6 +115,12 @@ static void proxy_onError(err_t err)
   // There's no "disconnect" event if never connected, so trigger display err
   if (hm.getProtocolState() == HeaterMeterClient::hpsConnecting)
     ledsShowDisconnected();
+
+#if defined(ESP8266)
+  // BRY this is a workaround for getting stuck in -13
+  if (err == ERR_ABRT)
+    ESP.restart();
+#endif
 }
 
 static void proxy_onWifiConnect(void)

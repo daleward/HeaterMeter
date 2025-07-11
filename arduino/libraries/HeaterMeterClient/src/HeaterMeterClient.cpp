@@ -5,7 +5,7 @@
   #include <HTTPClient.h>
 #endif
 
-#define CLIENT_HTTP_TIMEOUT 6000
+#define CLIENT_HTTP_TIMEOUT 6 // seconds
 
 //static void hexdump(char* data, size_t len)
 //{
@@ -38,7 +38,7 @@
 
 void HeaterMeterClientProbe::clear(void)
 {
-  Name[0] = '\0'; 
+  Name[0] = '\0';
   //float Temperature;
   HasTemperature = false;
   AlarmLow = 0;;
@@ -143,7 +143,7 @@ void HeaterMeterClient::updateProxyFromJson(JsonDocument& doc)
     // Alarms
     p.AlarmHigh = jp["a"]["h"];
     p.AlarmLow = jp["a"]["l"];
-    p.AlarmRinging = jp["a"]["r"].isNull() ? ' ' : jp["a"]["r"];
+    p.AlarmRinging = jp["a"]["r"].isNull() ? ' ' : jp["a"]["r"].as<unsigned char>();
   }
 
   // Output
@@ -269,7 +269,7 @@ void HeaterMeterClient::onData_cb(void* data, size_t len)
     case hpsChunk:
       _expectedChunkSize = strtol(_lineBuffer, NULL, 16);
       setProtocolState(hpsChunkData);
-      //Serial.print("Expecting chunk size "); Serial.println(_expectedChunkSize, DEC);
+      //Serial.print(F("Expecting chunk size ")); Serial.println(_expectedChunkSize, DEC);
       break;
 
     case hpsChunkData:
@@ -318,8 +318,7 @@ void HeaterMeterClient::clientConnect(void)
   _client.onConnect(&asynctcp_onConnect, this);
   _client.onDisconnect(&asynctcp_onDisconnect, this);
   _client.onError(&asynctcp_onError, this);
-  // data should be received every 2-5s 
-  _client.setRxTimeout(CLIENT_HTTP_TIMEOUT);
+  _client.setRxTimeout(CLIENT_HTTP_TIMEOUT); // generates an onDisconnect
   _client.connect(_host, 80);
 
   setProtocolState(hpsConnecting);
@@ -332,15 +331,6 @@ void HeaterMeterClient::clientSendRequest(void)
     _client.write("GET /luci/lm/stream HTTP/1.1\r\n\r\n");
     setProtocolState(hpsRequestSent);
     _lastClientActivity = millis();
-  }
-}
-
-void HeaterMeterClient::clientCheckTimeout(void)
-{
-  if ((millis() - _lastClientActivity) > CLIENT_HTTP_TIMEOUT)
-  {
-    Serial.println(F("Idle timeout"));
-    _client.close();
   }
 }
 
@@ -384,6 +374,7 @@ void HeaterMeterClient::discover(void)
     }
 
     // Found IP
+    //Serial.print("Discovered host: "); Serial.println((const char *)guess);
     strlcpy(_host, guess, sizeof(_host));
     setProtocolState(hpsDisconnected);
     return;
@@ -430,7 +421,7 @@ bool HeaterMeterClient::setProtocolState(HmclientProtocolState hps)
   switch (_protocolState)
   {
   case hpsNoNetwork: if (oldState > hpsNoNetwork && onWifiDisconnect) onWifiDisconnect(); break;
-  case hpsDiscover: if (oldState == hpsNoNetwork && onWifiConnect) onWifiConnect(); break;
+  case hpsDiscover: if (oldState <= hpsNoNetwork && onWifiConnect) onWifiConnect(); break;
   case hpsReconnectDelay:if (oldState > hpsConnecting && onDisconnect) onDisconnect(); break;
   case hpsConnected: if (onConnect) onConnect(); break;
   case hpsNone:
@@ -480,7 +471,6 @@ void HeaterMeterClient::update(void)
   case hpsHeaders:
   case hpsChunk:
   case hpsChunkData:
-    clientCheckTimeout();
     break;
   } /* switch */
 

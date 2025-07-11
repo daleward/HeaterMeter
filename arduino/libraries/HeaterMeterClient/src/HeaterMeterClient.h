@@ -72,7 +72,7 @@ public:
   // The current HeaterMeter state updated when ProtocolState is >hpsHeaders
   HeaterMeterClientPid state;
   HmclientProtocolState getProtocolState(void) {  return _protocolState; }
-  IPAddress getRemoteIP(void) { return _client.remoteIP();  }
+  IPAddress getRemoteIP(void) { return _client.remoteIP(); }
   const char* getHost(void) const { return _host; }
   void update();
   bool isCommunicating(void) const { return _protocolState >= hpsChunk; }
@@ -113,7 +113,6 @@ private:
   void handleServerSentLine(void);
   void clientConnect(void);
   void clientSendRequest(void);
-  void clientCheckTimeout(void);
   bool setProtocolState(HmclientProtocolState hps);
   void discover(void);
 
