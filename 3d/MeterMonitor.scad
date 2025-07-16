@@ -1,5 +1,7 @@
 // LCD type
 lt = 0; // [0: 0.56inch, 1: 0.36inch]
+// ESP type
+esp_type = 0; // [0: "Wemos D1 Mini", 1: "ESP32-C3-Zero"]
 
 wall = 1.3; // interior walls
 wall_o = 1.9; // outer walls
@@ -37,7 +39,7 @@ module main() {
       translate([-oa_w/2-wall_o, -oa_d/2-wall_o, 0])
         cube_bchamfer([oa_w+pad_right+2*wall_o, oa_d+2*wall_o, oa_h+wall_t+lid_h+wall_t/2], r=5, bottom=1);
     } // union
-    
+
     // main cutout
     translate([-oa_w/2, -oa_d/2, wall_t])
       cube_bchamfer([oa_w+pad_right, oa_d, oa_h+e], r=5-wall, bottom=1, top=lid_h);
@@ -45,19 +47,22 @@ module main() {
     translate([-oa_w/2,-oa_d/2-wall_o-e,wall_t+oa_h])
       cube_fillet([oa_w+pad_right, oa_d+wall_o+e, lid_h+wall_t+e],
         vertical=[2,2,0,0], top=[lid_h,lid_h,0,lid_h], $fn=4);
-    
+
     // LCD holes
     lcd_places() lcd_mount_n();
-    
+
     // USB power hole
-    wemos_place() translate([-5.9, -35.2/2-1.2-wall_o-e, 2.3+2-0.5]) 
+    wemos_place() translate([-5.9, -35.2/2-1.2-wall_o-e, 2.3+2-0.5])
       cube_fillet([13, 10, 6+1.5], top=[0,1,0,1]);
 
     //branding();
   } // diff
 
   lcd_places() lcd_mount_p();
-  wemos_place() wemos_mount(2);
+  wemos_place() {
+    wemos_mount(2);
+    if (esp_type == 1) c3zero_mount();
+  }
 }
 
 module lid() {
@@ -111,31 +116,31 @@ module wemos_mount(extra_h) {
   we_h=6;
   we_rad=2.4;
   we_wall=1.2;
-  
+
   difference() {
     translate([-we_w/2-we_wall, -we_d/2-we_wall, 0])
       cube_fillet([we_w+2*we_wall, we_d+2*we_wall, we_h+extra_h],
         vertical=[we_rad+we_wall*0.5855, we_rad+we_wall*0.5855, 0, 0]);
-    
+
     translate([0,0,extra_h]) {
       // Big hole
       translate([-we_w/2, -we_d/2, 3])
         cube_fillet([we_w, we_d, we_h+2*e], vertical=[we_rad, we_rad, 0, 0]);
       // USB jack
-      translate([-5.9, -we_d/2-we_wall-e, 2.3]) 
+      translate([-5.9, -we_d/2-we_wall-e, 2.3])
         cube([13, 10, we_h]);
       // Reset button
-      translate([we_w/2-e, -we_d/2+1.8, 3.5]) 
+      translate([we_w/2-e, -we_d/2+1.8, 3.5])
         cube([we_wall+2*e, 5, we_h]);
       // Bottom small hole
       translate([-21/2, -31/2, -e])
         cube([21, 31, we_h+2*e]);
       // wifi antenna
-      translate([-18/2, we_d/2-(we_d-31)/2-e, 3-1.3]) 
+      translate([-18/2, we_d/2-(we_d-31)/2-e, 3-1.3])
         cube([18, (we_d-31)/2+e, 1.3+e]);
     }
   } // diff
-  
+
   // Grab notches
   translate([0,0,extra_h]) {
     translate([we_w/2,5/2,we_h-0.8/2]) rotate([90]) cylinder(5, d=0.8, $fn=4);
@@ -143,19 +148,44 @@ module wemos_mount(extra_h) {
   }
 }
 
+module c3zero_mount() {
+  // Waveshare ESP32-C3 Zero mount that sits inside the wemos mount
+  c3_w = 18.3;
+  c3_d = 21.5;
+  c3_h = 6.0;
+  c3_h_offset = 3.0;
+
+  difference() {
+    // full block
+    translate([-(21-0.2)/2, -31/2, 0])
+      cube([21-0.2, c3_d+wall, c3_h]);
+    // PCB cutout
+    translate([-c3_w/2, -31/2-e, c3_h_offset])
+      cube([c3_w , c3_d+e, c3_h+2*e]);
+    // center cutout
+    translate([-c3_w/2+2*wall, -31/2+2*wall, -e])
+      cube_fillet([c3_w-4*wall, c3_d-4*wall, c3_h+2*e], vertical=[2,2,2,2], $fn=16);
+  }
+  // grab notches
+  mirror2([1,0,0]) translate([-c3_w/2, -31/2+c3_d, c3_h-0.75])
+    rotate([0,90]) cylinder(5, d=1.5, $fn=4);
+  translate([-c3_w/2, -31/2, c3_h-0.75])
+    rotate([-90]) cylinder(7, d=1.5, $fn=4);
+}
+
 module lid_stand()
 {
   ls_weight_dia = 19.1;
   ls_weight_h = 12;
-  
+
   ls_w = 75;
   ls_d = ls_weight_dia + 2 * wall;
   ls_h = ls_weight_h + 5;
-  
+
   ls_mag_w = 7;
   ls_mag_d = 12.7;
   ls_mag_h = 2.3;
-  
+
   difference() {
     translate([-ls_w/2, -ls_d/2, 0])
       cube_fillet([ls_w, ls_d, ls_h], top=[5, ls_h/2,0, ls_h/2]);
@@ -241,7 +271,7 @@ module cube_negative_fillet(size, radius=-1, vertical=[3,3,3,3], top=[0,0,0,0], 
     fn_V = $fn[0] == undef ? $fn : $fn[0];
     fn_T = $fn[1] == undef ? $fn : $fn[1];
     fn_B = $fn[2] == undef ? $fn : $fn[2];
-  
+
     for (i=[0:3]) {
         if (radius > -1) {
             rotate([0, 0, 90*i]) translate([size[1-j[i]]/2, size[j[i]]/2, 0]) fillet(radius, size[2], fn_V);
