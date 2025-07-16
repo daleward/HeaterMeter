@@ -59,10 +59,7 @@ module main() {
   } // diff
 
   lcd_places() lcd_mount_p();
-  wemos_place() {
-    wemos_mount(2);
-    if (esp_type == 1) c3zero_mount();
-  }
+  wemos_place() wemos_mount(2);
 }
 
 module lid() {
@@ -146,6 +143,8 @@ module wemos_mount(extra_h) {
     translate([we_w/2,5/2,we_h-0.8/2]) rotate([90]) cylinder(5, d=0.8, $fn=4);
     translate([-we_w/2,5/2,we_h-0.8/2]) rotate([90]) cylinder(5, d=0.8, $fn=4);
   }
+  
+  if (esp_type == 1) translate([0,1.0,extra_h]) c3zero_mount();
 }
 
 module c3zero_mount() {
@@ -155,6 +154,9 @@ module c3zero_mount() {
   c3_h = 6.0;
   c3_h_offset = 3.0;
 
+  //translate([-(21-0.2)/2, -31/2+c3_d+wall, 0])
+  //  cube_fillet([21-0.2, 31-(c3_d+wall+1.0), c3_h], bottom=[0,0,1,0], vertical=[0.3,0.3,0.3,0.3]);
+  
   difference() {
     // full block
     translate([-(21-0.2)/2, -31/2, 0])
