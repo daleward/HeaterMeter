@@ -31,7 +31,7 @@ pad_right = max(2*lcd_window_offset, 0); // padding is asymetrical so not includ
 
 main();
 translate([-oa_w/2, oa_d/2+wall_o+5, 0]) lid();
-//lid_stand();
+translate([0, -oa_d/2-wall_o-15, 0]) lid_stand();
 
 module main() {
   difference() {
